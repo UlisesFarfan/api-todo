@@ -1,3 +1,2 @@
-.env
-api-rest-go.exe
-api-rest-go.exe~
+app.env
+api-todo.exe
