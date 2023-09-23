@@ -57,3 +57,16 @@ func (controller *AuthenticationController) Register(ctx *gin.Context) {
 	webResponse := response.CreateResponse(200, "Ok", "Successfully registered", nil)
 	ctx.JSON(http.StatusOK, webResponse)
 }
+
+// Get user by token
+func (controller *AuthenticationController) GetUserToken(ctx *gin.Context) {
+	user_id := ctx.GetString("currentUserId")
+	user_response, err := controller.authenticationService.GetUserToken(user_id)
+	if err != nil {
+		webResponse := response.CreateResponse(400, "Bad Request", err.Error(), nil)
+		ctx.JSON(http.StatusOK, webResponse)
+		return
+	}
+	webResponse := response.CreateResponse(200, "Ok", "Successfully registered", user_response)
+	ctx.JSON(http.StatusOK, webResponse)
+}

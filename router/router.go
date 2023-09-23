@@ -33,6 +33,7 @@ func NewRouter(
 	authenticationRouter := router.Group("/authentication")
 	authenticationRouter.POST("/register", authenticationController.Register)
 	authenticationRouter.POST("/login", authenticationController.Login)
+	authenticationRouter.GET("", middleware.DeserializeUser(userRepository), authenticationController.GetUserToken)
 
 	// url/api/users/
 	usersRouter := router.Group("/users")

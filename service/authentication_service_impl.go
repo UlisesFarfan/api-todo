@@ -75,3 +75,9 @@ func (a *AuthenticationServiceImpl) Register(users request.CreateUsersRequest) e
 	}
 	return nil
 }
+
+// GetUserToken implements AuthenticationService.
+func (a *AuthenticationServiceImpl) GetUserToken(user_id string) (response.UsersResponse, error) {
+	user_response, err := a.UsersRepository.FindById(user_id)
+	return user_response, err
+}
