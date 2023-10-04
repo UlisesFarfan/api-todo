@@ -51,7 +51,7 @@ func main() {
 	)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173/", "http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:5173/", "http://localhost:5173", "https://todoappbyulises.vercel.app/", "https://todoappbyulises.vercel.app"},
 		AllowCredentials: true,
 		AllowedMethods:   []string{"POST", "PUT", "PATCH", "GET", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "X-Api-Key", "X-Requested-With", "Content-Type", "Accept", "Authorization"},
