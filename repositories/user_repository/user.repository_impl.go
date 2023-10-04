@@ -66,6 +66,7 @@ func (d *UsersRepositoryImpl) FindById(userId string) (response.UsersResponse, e
 		Id:        user.Id.Hex(),
 		Name:      user.Name,
 		Email:     user.Email,
+		Img:       user.Img,
 		Rol:       string(user.Rol),
 		CreatedAt: user.CreatedAt,
 		UpdateAt:  user.UpdateAt,
@@ -90,6 +91,7 @@ func (d *UsersRepositoryImpl) Save(users request.CreateUsersRequest) error {
 		Password:   users.Password,
 		WorkSpaces: []primitive.ObjectID{},
 		Rol:        models.UserRol,
+		Img:        users.Img,
 		CreatedAt:  time.Now(),
 		UpdateAt:   time.Now(),
 	}
@@ -109,6 +111,7 @@ func (d *UsersRepositoryImpl) Update(users request.UpdateUsersRequest) (response
 		"$set": bson.M{
 			"name":     users.Name,
 			"email":    users.Email,
+			"img":      users.Img,
 			"rol":      users.Rol,
 			"updateat": time.Now(),
 		},
@@ -125,6 +128,7 @@ func (d *UsersRepositoryImpl) Update(users request.UpdateUsersRequest) (response
 		Id:        user.Id.Hex(),
 		Name:      user.Name,
 		Email:     user.Email,
+		Img:       user.Img,
 		Rol:       string(user.Rol),
 		CreatedAt: user.CreatedAt,
 		UpdateAt:  user.UpdateAt,

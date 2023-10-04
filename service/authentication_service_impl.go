@@ -25,12 +25,11 @@ func NewAuthenticationServiceImpl(usersRepository user_repository.UsersRepositor
 }
 
 // Login implements AuthenticationService
-func (a *AuthenticationServiceImpl) Login(users request.LoginRequest) (response.UsersResponse, string, error) {
+func (a *AuthenticationServiceImpl) Login(users request.LoginRequest) (string, error) {
 	// Find username in database
 	new_users, users_err := a.UsersRepository.FindByEmail(users.Email)
 	if users_err != nil {
-		fmt.Println("ERROOOOR", users_err)
-		return response.UsersResponse{}, "", errors.New("invalid username or Password")
+		return "", errors.New("invalid username or Password")
 	}
 
 	config, _ := config.LoadConfig(".")
@@ -38,38 +37,29 @@ func (a *AuthenticationServiceImpl) Login(users request.LoginRequest) (response.
 	verify_error := security.VerifyPassword(new_users.Password, users.Password)
 	if verify_error != nil {
 		fmt.Println(verify_error)
-		return response.UsersResponse{}, "", errors.New("invalid username or Password")
+		return "", errors.New("invalid username or Password")
 	}
 
 	// Generate Token
 	token, err_token := security.GenerateToken(config.TokenExpiresIn, new_users.Id, config.TokenSecret)
 	if err_token != nil {
-		return response.UsersResponse{}, "", err_token
+		return "", err_token
 	}
-	user_response := response.UsersResponse{
-		Id:         new_users.Id.Hex(),
-		Name:       new_users.Name,
-		Email:      new_users.Email,
-		Rol:        string(new_users.Rol),
-		WorkSpaces: new_users.WorkSpaces,
-		CreatedAt:  new_users.CreatedAt,
-		UpdateAt:   new_users.UpdateAt,
-	}
-	return user_response, token, nil
+
+	return token, nil
 
 }
 
 // Register implements AuthenticationService
 func (a *AuthenticationServiceImpl) Register(users request.CreateUsersRequest) error {
-
-	hashedPassword, err := security.HashPassword(users.Password)
-
+	hashedPassword, _ := security.HashPassword(users.Password)
 	newUser := request.CreateUsersRequest{
 		Name:     users.Name,
 		Email:    users.Email,
+		Img:      users.Img,
 		Password: hashedPassword,
 	}
-	err = a.UsersRepository.Save(newUser)
+	err := a.UsersRepository.Save(newUser)
 	if err != nil {
 		return err
 	}

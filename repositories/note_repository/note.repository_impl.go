@@ -14,16 +14,16 @@ import (
 )
 
 type NoteRepositoryImpl struct {
-	NoteCollection      *mongo.Collection
-	WorkSpaceCollection *mongo.Collection
-	Ctx                 context.Context
+	NoteCollection   *mongo.Collection
+	ColumnCollection *mongo.Collection
+	Ctx              context.Context
 }
 
 func NewUsersRepositoryImpl(Db *mongo.Database, Ctx context.Context) NoteRepository {
 	return &NoteRepositoryImpl{
-		NoteCollection:      Db.Collection("note"),
-		WorkSpaceCollection: Db.Collection("workspace"),
-		Ctx:                 Ctx,
+		NoteCollection:   Db.Collection("note"),
+		ColumnCollection: Db.Collection("column"),
+		Ctx:              Ctx,
 	}
 }
 
@@ -37,15 +37,15 @@ func (d *NoteRepositoryImpl) Delete(noteId string) error {
 	if err != nil {
 		return err
 	}
-	delete_note_workspace := bson.M{
+	delete_note_column := bson.M{
 		"$pull": bson.M{
 			"notes": oid,
 		},
 	}
-	filter_workspace := bson.M{
+	filter_column := bson.M{
 		"notes": oid,
 	}
-	result := d.WorkSpaceCollection.FindOneAndUpdate(d.Ctx, filter_workspace, delete_note_workspace)
+	result := d.ColumnCollection.FindOneAndUpdate(d.Ctx, filter_column, delete_note_column)
 	if result.Err() != nil {
 		return result.Err()
 	}
@@ -82,27 +82,39 @@ func (d *NoteRepositoryImpl) FindById(noteId string) (response.NoteResponse, err
 }
 
 // Save implements NoteRepository.
-func (d *NoteRepositoryImpl) Save(note request.CreateNoteRequest, workspaceId string) error {
+func (d *NoteRepositoryImpl) Save(note request.CreateNoteRequest) (response.NoteResponse, error) {
 	new_note := models.Note{
 		Task:      note.Task,
-		Status:    note.Status,
 		CreatedAt: time.Now(),
 		UpdateAt:  time.Now(),
 	}
 	result, err := d.NoteCollection.InsertOne(d.Ctx, new_note)
 	if err != nil {
-		return err
+		return response.NoteResponse{}, err
 	}
-	oid, _ := primitive.ObjectIDFromHex(workspaceId)
+	oid, _ := primitive.ObjectIDFromHex(note.ColumnId)
 	filter := bson.M{"_id": oid}
 	change := bson.M{"$push": bson.M{"notes": result.InsertedID}}
-	result_push_workspace := d.WorkSpaceCollection.FindOneAndUpdate(d.Ctx, filter, change)
-	workspace_res := bson.D{}
-	err = result_push_workspace.Decode(&workspace_res)
+	result_push_column := d.ColumnCollection.FindOneAndUpdate(d.Ctx, filter, change)
+	column_res := bson.D{}
+	err = result_push_column.Decode(&column_res)
 	if err != nil {
-		return err
+		return response.NoteResponse{}, err
 	}
-	return nil
+	var note_model models.Note
+	filter = bson.M{"_id": result.InsertedID}
+	result_note := d.NoteCollection.FindOne(d.Ctx, filter)
+	err = result_note.Decode(&note_model)
+	if err != nil {
+		return response.NoteResponse{}, err
+	}
+	note_response := response.NoteResponse{
+		Id:        note_model.Id,
+		Task:      note_model.Task,
+		CreatedAt: note_model.CreatedAt,
+		UpdateAt:  note_model.UpdateAt,
+	}
+	return note_response, nil
 }
 
 // Update implements NoteRepository.
@@ -113,7 +125,6 @@ func (d *NoteRepositoryImpl) Update(notes request.UpdateNoteRequest) (response.N
 	update := bson.M{
 		"$set": bson.M{
 			"task":     notes.Task,
-			"status":   notes.Status,
 			"updateat": time.Now(),
 		},
 	}
@@ -128,7 +139,6 @@ func (d *NoteRepositoryImpl) Update(notes request.UpdateNoteRequest) (response.N
 	note_response := response.NoteResponse{
 		Id:        note.Id,
 		Task:      note.Task,
-		Status:    note.Status,
 		CreatedAt: note.CreatedAt,
 		UpdateAt:  note.UpdateAt,
 	}

@@ -20,20 +20,19 @@ func NewNoteController(repository note_repository.NoteRepository) *NoteControlle
 
 func (controller *NoteController) PostNote(c *gin.Context) {
 	createNoteRequest := request.CreateNoteRequest{}
-	workspaceId := c.Param("workspace_id")
 	err := c.BindJSON(&createNoteRequest)
 	if err != nil {
 		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", err.Error(), nil)
 		c.IndentedJSON(http.StatusBadRequest, webResponse)
 		return
 	}
-	err = controller.noteRepository.Save(createNoteRequest, workspaceId)
+	res, err := controller.noteRepository.Save(createNoteRequest)
 	if err != nil {
 		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", err.Error(), nil)
 		c.IndentedJSON(http.StatusBadRequest, webResponse)
 		return
 	}
-	webResponse := response.CreateResponse(http.StatusOK, "Ok", "Create note successfully", nil)
+	webResponse := response.CreateResponse(http.StatusOK, "Ok", "Create note successfully", res)
 	c.IndentedJSON(http.StatusOK, webResponse)
 }
 

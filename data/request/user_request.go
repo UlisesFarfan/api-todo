@@ -6,6 +6,7 @@ type CreateUsersRequest struct {
 	Name      string    `validate:"required,min=2,max=100" json:"name"`
 	Email     string    `validate:"required,min=2,max=100" json:"email"`
 	Password  string    `validate:"required,min=2,max=100" json:"password"`
+	Img       string    `json:"img"`
 	Rol       string    `json:"rol"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdateAt  time.Time `json:"update_at"`
@@ -15,6 +16,7 @@ type UpdateUsersRequest struct {
 	Id    string `json:"_id"`
 	Name  string `json:"name"`
 	Rol   string `json:"rol"`
+	Img   string `json:"img"`
 	Email string `json:"email"`
 }
 

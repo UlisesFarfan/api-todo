@@ -22,7 +22,7 @@ func NewAuthenticationController(service service.AuthenticationService) *Authent
 func (controller *AuthenticationController) Login(ctx *gin.Context) {
 	loginRequest := request.LoginRequest{}
 	err := ctx.ShouldBindJSON(&loginRequest)
-	user, token, err_token := controller.authenticationService.Login(loginRequest)
+	token, err_token := controller.authenticationService.Login(loginRequest)
 	fmt.Println(err_token)
 	if err_token != nil {
 		fmt.Println(err, err_token)
@@ -33,7 +33,6 @@ func (controller *AuthenticationController) Login(ctx *gin.Context) {
 	resp := response.LoginResponse{
 		TokenType: "Bearer",
 		Token:     token,
-		User:      user,
 	}
 	webResponse := response.CreateResponse(200, "Ok", "Successfully logged in", resp)
 	ctx.JSON(http.StatusOK, webResponse)

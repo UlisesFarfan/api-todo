@@ -4,6 +4,7 @@ import (
 	"api-todo/config"
 	"api-todo/controller"
 	"api-todo/database"
+	"api-todo/repositories/column_repository"
 	"api-todo/repositories/note_repository"
 	"api-todo/repositories/user_repository"
 	"api-todo/repositories/workspace_repository"
@@ -12,19 +13,13 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/rs/cors"
 )
 
 func main() {
-	// lead env
-	loadConfig, err := config.LoadConfig(".")
-	if err != nil {
-		log.Fatal("🚀 Could not load environment variables", err)
-	}
-
+	config, _ := config.LoadConfig(".")
 	db := database.GetDatabase()
 	ctx := context.Background()
 	validate := validator.New()
@@ -33,6 +28,7 @@ func main() {
 	userRepository := user_repository.NewUsersRepositoryImpl(db, ctx)
 	workSpaceRepository := workspace_repository.NewWorkSpaceRepositoryImpl(db, ctx)
 	noteRepository := note_repository.NewUsersRepositoryImpl(db, ctx)
+	columnRepository := column_repository.NewColumnRepositoryImpl(db, ctx)
 
 	// init service
 	authenticationService := service.NewAuthenticationServiceImpl(userRepository, validate)
@@ -42,6 +38,7 @@ func main() {
 	userController := controller.NewUsersController(userRepository)
 	workSpaceController := controller.NewWorkSpaceController(workSpaceRepository)
 	noteController := controller.NewNoteController(noteRepository)
+	columnController := controller.NewColumnController(columnRepository)
 
 	// init routes
 	routes := router.NewRouter(
@@ -50,34 +47,21 @@ func main() {
 		userController,
 		workSpaceController,
 		noteController,
+		columnController,
 	)
 
-	// add cors
-	routes.Use(CORSMiddleware())
-	server := &http.Server{
-		Addr:           ":" + loadConfig.ServerPort,
-		Handler:        routes,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173/", "http://localhost:5173"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{"POST", "PUT", "PATCH", "GET", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "X-Api-Key", "X-Requested-With", "Content-Type", "Accept", "Authorization"},
+		// Enable Debugging for testing, consider disabling in production
+		Debug: true,
+	})
 
-	server_err := server.ListenAndServe()
-	log.Panic(server_err)
-}
+	handler := c.Handler(routes)
 
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
+	// server_err := server.ListenAndServe()
+	// log.Panic(server_err)
+	log.Fatal((http.ListenAndServe(":"+config.ServerPort, handler)))
 }

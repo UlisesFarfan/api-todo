@@ -41,6 +41,7 @@ func DeserializeUser(userRepository user_repository.UsersRepository) gin.Handler
 		}
 
 		ctx.Set("currentUser", result.Name)
+		ctx.Set("currentUserEmail", result.Email)
 		ctx.Set("currentUserRol", result.Rol)
 		ctx.Set("currentUserId", result.Id)
 		ctx.Next()

@@ -23,7 +23,7 @@ type WorkSpace struct {
 	Id        primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty" `
 	Name      string               `json:"name"`
 	Users     []UserRef            `json:"users"`
-	Notes     []primitive.ObjectID `json:"notes"`
+	Columns   []primitive.ObjectID `json:"columns"`
 	CreatedAt time.Time            `json:"created_at"`
 	UpdateAt  time.Time            `json:"update_at"`
 }

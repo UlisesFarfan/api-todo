@@ -14,3 +14,8 @@ type UpdateWorkSpaceRequest struct {
 	Name   string `json:"name"`
 	UserId string `json:"user_id"`
 }
+
+type UpdateColumnOrderRequest struct {
+	Id      string   `json:"_id"`
+	Columns []string `json:"columns"`
+}

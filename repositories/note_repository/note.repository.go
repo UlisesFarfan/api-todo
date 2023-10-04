@@ -6,7 +6,7 @@ import (
 )
 
 type NoteRepository interface {
-	Save(note request.CreateNoteRequest, workspaceId string) error
+	Save(note request.CreateNoteRequest) (response.NoteResponse, error)
 	Update(note request.UpdateNoteRequest) (response.NoteResponse, error)
 	Delete(noteId string) error
 	FindById(noteId string) (response.NoteResponse, error)

@@ -16,14 +16,16 @@ import (
 type WorkSpaceRepositoryImpl struct {
 	WorkSpaceCollection *mongo.Collection
 	UserCollection      *mongo.Collection
+	ColumnCollection    *mongo.Collection
 	NoteCollection      *mongo.Collection
 	Ctx                 context.Context
 }
 
 func NewWorkSpaceRepositoryImpl(Db *mongo.Database, Ctx context.Context) WorkSpacRepository {
 	return &WorkSpaceRepositoryImpl{
-		WorkSpaceCollection: Db.Collection("workspace"),
 		UserCollection:      Db.Collection("user"),
+		WorkSpaceCollection: Db.Collection("workspace"),
+		ColumnCollection:    Db.Collection("column"),
 		NoteCollection:      Db.Collection("note"),
 		Ctx:                 Ctx,
 	}
@@ -52,10 +54,10 @@ func (d *WorkSpaceRepositoryImpl) Delete(workSpaceId string) error {
 			return result.Err()
 		}
 	}
-	// Delete WorkSpace Notes
-	for _, ur := range work_space.Notes {
+	// Delete WorkSpace Columns
+	for _, ur := range work_space.Columns {
 		filter := bson.M{"_id": ur}
-		_, err := d.NoteCollection.DeleteOne(d.Ctx, filter)
+		_, err := d.ColumnCollection.DeleteOne(d.Ctx, filter)
 		if err != nil {
 			return err
 		}
@@ -68,8 +70,58 @@ func (d *WorkSpaceRepositoryImpl) Delete(workSpaceId string) error {
 }
 
 // FindAll implements WorkSpacRepository.
-func (d *WorkSpaceRepositoryImpl) FindAll() (response.WorkSpaceResponses, error) {
-	panic("unimplemented")
+func (d *WorkSpaceRepositoryImpl) FindAllByUserId(user_id string) (response.WorkSpaceResponses, error) {
+	var user models.User
+	workspaces_responses := response.WorkSpaceResponses{}
+	oid, _ := primitive.ObjectIDFromHex(user_id)
+	filter := bson.M{"_id": oid}
+	User := d.UserCollection.FindOne(d.Ctx, filter)
+	decodeErr := User.Decode(&user)
+	for _, ur := range user.WorkSpaces {
+		var workspace_model models.WorkSpace
+		column_responses := response.ColumnResponses{}
+		filter := bson.M{"_id": ur}
+		WorkSpace := d.WorkSpaceCollection.FindOne(d.Ctx, filter)
+		_ = WorkSpace.Decode(&workspace_model)
+		for _, i := range workspace_model.Columns {
+			var column_model models.Column
+			note_responses := response.NoteResponses{}
+			filter := bson.M{"_id": i}
+			Column := d.ColumnCollection.FindOne(d.Ctx, filter)
+			_ = Column.Decode(&column_model)
+			for _, j := range column_model.Notes {
+				var note_model models.Note
+				filter := bson.M{"_id": j}
+				Note := d.NoteCollection.FindOne(d.Ctx, filter)
+				_ = Note.Decode(&note_model)
+				note_response := response.NoteResponse{
+					Id:        note_model.Id,
+					Task:      note_model.Task,
+					CreatedAt: note_model.CreatedAt,
+					UpdateAt:  note_model.UpdateAt,
+				}
+				note_responses = append(note_responses, note_response)
+			}
+			column_response := response.ColumnResponse{
+				Id:        column_model.Id,
+				Name:      column_model.Name,
+				Notes:     note_responses,
+				CreatedAt: column_model.CreatedAt,
+				UpdateAt:  column_model.UpdateAt,
+			}
+			column_responses = append(column_responses, column_response)
+		}
+		workspace_response := response.WorkSpaceResponse{
+			Id:        workspace_model.Id,
+			Name:      workspace_model.Name,
+			Users:     workspace_model.Users,
+			Columns:   column_responses,
+			CreatedAt: workspace_model.CreatedAt,
+			UpdateAt:  workspace_model.UpdateAt,
+		}
+		workspaces_responses = append(workspaces_responses, workspace_response)
+	}
+	return workspaces_responses, decodeErr
 }
 
 // FindById implements WorkSpacRepository.
@@ -83,7 +135,6 @@ func (d *WorkSpaceRepositoryImpl) FindById(workSpaceId string) (response.WorkSpa
 		Id:        work_space.Id,
 		Name:      work_space.Name,
 		Users:     work_space.Users,
-		Notes:     work_space.Notes,
 		CreatedAt: work_space.CreatedAt,
 		UpdateAt:  work_space.UpdateAt,
 	}
@@ -94,7 +145,7 @@ func (d *WorkSpaceRepositoryImpl) FindById(workSpaceId string) (response.WorkSpa
 func (d *WorkSpaceRepositoryImpl) Save(workSpace request.CreateWorkSpaceRequest) error {
 	new_workspace := models.WorkSpace{
 		Name:      workSpace.Name,
-		Notes:     []primitive.ObjectID{},
+		Columns:   []primitive.ObjectID{},
 		CreatedAt: time.Now(),
 		UpdateAt:  time.Now(),
 	}
@@ -165,7 +216,39 @@ func (d *WorkSpaceRepositoryImpl) Update(workSpace request.UpdateWorkSpaceReques
 		Id:        work_space.Id,
 		Name:      work_space.Name,
 		Users:     work_space.Users,
-		Notes:     work_space.Notes,
+		CreatedAt: work_space.CreatedAt,
+		UpdateAt:  work_space.UpdateAt,
+	}
+	return workspace_response, decodeErr
+}
+
+// Update implements WorkSpacRepository.
+func (d *WorkSpaceRepositoryImpl) UpdateColumnsOrder(workSpace request.UpdateColumnOrderRequest) (response.WorkSpaceResponse, error) {
+	var work_space models.WorkSpace
+	new_columns_order := []primitive.ObjectID{}
+	oid, _ := primitive.ObjectIDFromHex(workSpace.Id)
+	filter := bson.M{"_id": oid}
+	for _, ur := range workSpace.Columns {
+		oid, _ := primitive.ObjectIDFromHex(ur)
+		new_columns_order = append(new_columns_order, oid)
+	}
+	change := bson.M{
+		"$set": bson.M{
+			"columns": new_columns_order,
+		},
+	}
+	after := options.After
+	upsert := true
+	otp := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+		Upsert:         &upsert,
+	}
+	result := d.WorkSpaceCollection.FindOneAndUpdate(d.Ctx, filter, change, &otp)
+	decodeErr := result.Decode(&work_space)
+	workspace_response := response.WorkSpaceResponse{
+		Id:        work_space.Id,
+		Name:      work_space.Name,
+		Users:     work_space.Users,
 		CreatedAt: work_space.CreatedAt,
 		UpdateAt:  work_space.UpdateAt,
 	}

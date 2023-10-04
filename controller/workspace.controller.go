@@ -80,3 +80,35 @@ func (controller *WorkSpaceController) DeleteWorkSpaceById(c *gin.Context) {
 	webResponse := response.CreateResponse(http.StatusOK, "Ok", "WorkSpace deleted successfully", nil)
 	c.IndentedJSON(http.StatusOK, webResponse)
 }
+
+// FindAllByUserId WorkSpace
+func (controller *WorkSpaceController) FindAllByUserId(c *gin.Context) {
+	user_id := c.GetString("currentUserId")
+	workspace_response, err := controller.workSpaceRepository.FindAllByUserId(user_id)
+	if err != nil {
+		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", err.Error(), nil)
+		c.IndentedJSON(http.StatusBadRequest, webResponse)
+		return
+	}
+	webResponse := response.CreateResponse(http.StatusOK, "Ok", "Successfully fetch all workspaces data", workspace_response)
+	c.IndentedJSON(http.StatusOK, webResponse)
+}
+
+// Update columns order
+func (controller *WorkSpaceController) UpdateColumnsOrder(c *gin.Context) {
+	update_columns_order := request.UpdateColumnOrderRequest{}
+	bindErr := c.BindJSON(&update_columns_order)
+	if bindErr != nil {
+		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", bindErr.Error(), nil)
+		c.IndentedJSON(http.StatusBadRequest, webResponse)
+		return
+	}
+	_, err := controller.workSpaceRepository.UpdateColumnsOrder(update_columns_order)
+	if err != nil {
+		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", err.Error(), nil)
+		c.IndentedJSON(http.StatusBadRequest, webResponse)
+		return
+	}
+	webResponse := response.CreateResponse(http.StatusOK, "Ok", "Update columns order successfully", nil)
+	c.IndentedJSON(http.StatusOK, webResponse)
+}

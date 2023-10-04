@@ -18,6 +18,7 @@ type User struct {
 	Id         primitive.ObjectID   `json:"_id,omitempty" bson:"_id,omitempty" `
 	Name       string               `json:"name"`
 	Email      string               `json:"email"`
+	Img        string               `json:"img"`
 	WorkSpaces []primitive.ObjectID `json:"work_spaces"`
 	Rol        Rol                  `json:"rol"`
 	Password   string               `json:"password"`
