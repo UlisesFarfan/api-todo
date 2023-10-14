@@ -14,5 +14,4 @@ type Note struct {
 	UpdateAt  time.Time          `json:"update_at"`
 }
 
-// qwheoi
 type Notes []Note
