@@ -58,7 +58,8 @@ func (controller *WorkSpaceController) UpdateWorkSpace(c *gin.Context) {
 // Find by _id
 func (controller *WorkSpaceController) FindWorkSpaceById(c *gin.Context) {
 	workspace_id := c.Param("workspace_id")
-	workspace_response, err := controller.workSpaceRepository.FindById(workspace_id)
+	user_id := c.GetString("currentUserId")
+	workspace_response, err := controller.workSpaceRepository.FindById(workspace_id, user_id)
 	if err != nil {
 		webResponse := response.CreateResponse(http.StatusBadRequest, "Bad Request", err.Error(), nil)
 		c.IndentedJSON(http.StatusBadRequest, webResponse)

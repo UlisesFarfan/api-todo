@@ -79,45 +79,19 @@ func (d *WorkSpaceRepositoryImpl) FindAllByUserId(user_id string) (response.Work
 	decodeErr := User.Decode(&user)
 	for _, ur := range user.WorkSpaces {
 		var workspace_model models.WorkSpace
-		column_responses := response.ColumnResponses{}
 		filter := bson.M{"_id": ur}
+		rol := models.VIEWER
 		WorkSpace := d.WorkSpaceCollection.FindOne(d.Ctx, filter)
 		_ = WorkSpace.Decode(&workspace_model)
-		for _, i := range workspace_model.Columns {
-			var column_model models.Column
-			note_responses := response.NoteResponses{}
-			filter := bson.M{"_id": i}
-			Column := d.ColumnCollection.FindOne(d.Ctx, filter)
-			_ = Column.Decode(&column_model)
-			for _, j := range column_model.Notes {
-				var note_model models.Note
-				filter := bson.M{"_id": j}
-				Note := d.NoteCollection.FindOne(d.Ctx, filter)
-				_ = Note.Decode(&note_model)
-				note_response := response.NoteResponse{
-					Id:        note_model.Id,
-					Task:      note_model.Task,
-					CreatedAt: note_model.CreatedAt,
-					UpdateAt:  note_model.UpdateAt,
-				}
-				note_responses = append(note_responses, note_response)
+		for _, ur := range workspace_model.Users {
+			if ur.UserId.Hex() == user_id {
+				rol = ur.Rol
 			}
-			column_response := response.ColumnResponse{
-				Id:        column_model.Id,
-				Name:      column_model.Name,
-				Notes:     note_responses,
-				CreatedAt: column_model.CreatedAt,
-				UpdateAt:  column_model.UpdateAt,
-			}
-			column_responses = append(column_responses, column_response)
 		}
 		workspace_response := response.WorkSpaceResponse{
-			Id:        workspace_model.Id,
-			Name:      workspace_model.Name,
-			Users:     workspace_model.Users,
-			Columns:   column_responses,
-			CreatedAt: workspace_model.CreatedAt,
-			UpdateAt:  workspace_model.UpdateAt,
+			Id:   workspace_model.Id,
+			Name: workspace_model.Name,
+			Rol:  rol,
 		}
 		workspaces_responses = append(workspaces_responses, workspace_response)
 	}
@@ -125,18 +99,52 @@ func (d *WorkSpaceRepositoryImpl) FindAllByUserId(user_id string) (response.Work
 }
 
 // FindById implements WorkSpacRepository.
-func (d *WorkSpaceRepositoryImpl) FindById(workSpaceId string) (response.WorkSpaceResponse, error) {
-	var work_space models.WorkSpace
+func (d *WorkSpaceRepositoryImpl) FindById(workSpaceId string, user_id string) (response.WorkSpaceResponseDetail, error) {
+	var workspace_model models.WorkSpace
+	column_responses := response.ColumnResponses{}
 	oid, _ := primitive.ObjectIDFromHex(workSpaceId)
 	filter := bson.M{"_id": oid}
 	Workspace := d.WorkSpaceCollection.FindOne(d.Ctx, filter)
-	decodeErr := Workspace.Decode(&work_space)
-	workspace_response := response.WorkSpaceResponse{
-		Id:        work_space.Id,
-		Name:      work_space.Name,
-		Users:     work_space.Users,
-		CreatedAt: work_space.CreatedAt,
-		UpdateAt:  work_space.UpdateAt,
+	decodeErr := Workspace.Decode(&workspace_model)
+	rol := models.VIEWER
+	for _, ur := range workspace_model.Users {
+		if ur.UserId.Hex() == user_id {
+			rol = ur.Rol
+		}
+	}
+	for _, i := range workspace_model.Columns {
+		var column_model models.Column
+		note_responses := response.NoteResponses{}
+		filter := bson.M{"_id": i}
+		Column := d.ColumnCollection.FindOne(d.Ctx, filter)
+		_ = Column.Decode(&column_model)
+		for _, j := range column_model.Notes {
+			var note_model models.Note
+			filter := bson.M{"_id": j}
+			Note := d.NoteCollection.FindOne(d.Ctx, filter)
+			_ = Note.Decode(&note_model)
+			note_response := response.NoteResponse{
+				Id:        note_model.Id,
+				Task:      note_model.Task,
+				CreatedAt: note_model.CreatedAt,
+				UpdateAt:  note_model.UpdateAt,
+			}
+			note_responses = append(note_responses, note_response)
+		}
+		column_response := response.ColumnResponse{
+			Id:        column_model.Id,
+			Name:      column_model.Name,
+			Notes:     note_responses,
+			CreatedAt: column_model.CreatedAt,
+			UpdateAt:  column_model.UpdateAt,
+		}
+		column_responses = append(column_responses, column_response)
+	}
+	workspace_response := response.WorkSpaceResponseDetail{
+		Id:      workspace_model.Id,
+		Name:    workspace_model.Name,
+		Rol:     rol,
+		Columns: column_responses,
 	}
 	return workspace_response, decodeErr
 }
@@ -152,7 +160,7 @@ func (d *WorkSpaceRepositoryImpl) Save(workSpace request.CreateWorkSpaceRequest)
 	oid, _ := primitive.ObjectIDFromHex(workSpace.UserId)
 	user_admin := models.UserRef{
 		UserId: oid,
-		Rol:    models.AdminWorkSpace,
+		Rol:    models.OWNER,
 	}
 	new_workspace.Users = append(new_workspace.Users, user_admin)
 	result, err := d.WorkSpaceCollection.InsertOne(d.Ctx, new_workspace)
@@ -186,7 +194,7 @@ func (d *WorkSpaceRepositoryImpl) Update(workSpace request.UpdateWorkSpaceReques
 		oid, _ := primitive.ObjectIDFromHex(workSpace.UserId)
 		new_user := models.UserRef{
 			UserId: oid,
-			Rol:    models.RolWorkSpace(models.UserRol),
+			Rol:    models.ROL(models.USER),
 		}
 		change = bson.M{
 			"$push": bson.M{
@@ -213,11 +221,8 @@ func (d *WorkSpaceRepositoryImpl) Update(workSpace request.UpdateWorkSpaceReques
 	result := d.WorkSpaceCollection.FindOneAndUpdate(d.Ctx, filter, change, &otp)
 	decodeErr := result.Decode(&work_space)
 	workspace_response := response.WorkSpaceResponse{
-		Id:        work_space.Id,
-		Name:      work_space.Name,
-		Users:     work_space.Users,
-		CreatedAt: work_space.CreatedAt,
-		UpdateAt:  work_space.UpdateAt,
+		Id:   work_space.Id,
+		Name: work_space.Name,
 	}
 	return workspace_response, decodeErr
 }
@@ -246,11 +251,8 @@ func (d *WorkSpaceRepositoryImpl) UpdateColumnsOrder(workSpace request.UpdateCol
 	result := d.WorkSpaceCollection.FindOneAndUpdate(d.Ctx, filter, change, &otp)
 	decodeErr := result.Decode(&work_space)
 	workspace_response := response.WorkSpaceResponse{
-		Id:        work_space.Id,
-		Name:      work_space.Name,
-		Users:     work_space.Users,
-		CreatedAt: work_space.CreatedAt,
-		UpdateAt:  work_space.UpdateAt,
+		Id:   work_space.Id,
+		Name: work_space.Name,
 	}
 	return workspace_response, decodeErr
 }

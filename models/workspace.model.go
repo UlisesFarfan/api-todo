@@ -6,16 +6,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type RolWorkSpace string
+type ROL string
 
 const (
-	AdminWorkSpace  RolWorkSpace = "admin"
-	NormalWorkSpace RolWorkSpace = "normal"
+	VIEWER ROL = "viewer"
+	USER   ROL = "user"
+	ADMIN  ROL = "admin"
+	OWNER  ROL = "owner"
 )
 
 type UserRef struct {
 	UserId primitive.ObjectID `json:"user_id"`
-	Rol    RolWorkSpace       `json:"role"`
+	Rol    ROL                `json:"role"`
 }
 
 // WorkSpace data type
