@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -22,7 +23,7 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AutomaticEnv()
 	viper.SetConfigType("env")
 	viper.SetConfigFile(".env")
-	viper.ReadInConfig()
+	fmt.Println(viper.Get("PORT"))
 
 	err = viper.ReadInConfig()
 	if err != nil {
