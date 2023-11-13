@@ -3,7 +3,6 @@ package database
 import (
 	"api-todo/config"
 	"context"
-	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,8 +12,7 @@ import (
 // Database connection
 func GetDatabase() *mongo.Database {
 	var database *mongo.Database
-	config, _ := config.LoadConfig()
-	fmt.Println(config.DbUrl)
+	config, _ := config.LoadConfig(".")
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(config.DbUrl))
 	if err != nil {
 		panic(err)

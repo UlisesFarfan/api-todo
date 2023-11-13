@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	config, _ := config.LoadConfig()
+	config, _ := config.LoadConfig("")
 	fmt.Println(config)
 	db := database.GetDatabase()
 	ctx := context.Background()
