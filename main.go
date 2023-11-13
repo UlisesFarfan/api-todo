@@ -11,7 +11,6 @@ import (
 	"api-todo/router"
 	"api-todo/service"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -20,8 +19,7 @@ import (
 )
 
 func main() {
-	config, _ := config.LoadConfig("")
-	fmt.Println(config)
+	config, _ := config.LoadConfig(".")
 	db := database.GetDatabase()
 	ctx := context.Background()
 	validate := validator.New()
