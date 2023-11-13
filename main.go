@@ -11,22 +11,15 @@ import (
 	"api-todo/router"
 	"api-todo/service"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/cors"
-	"github.com/spf13/viper"
 )
 
 func main() {
 	config, _ := config.LoadConfig(".")
-	fmt.Println(config)
-	viper.SetConfigFile(".env")
-	viper.ReadInConfig()
-	viper.AutomaticEnv()
-	fmt.Println(viper.Get("PORT"))
 	db := database.GetDatabase()
 	ctx := context.Background()
 	validate := validator.New()
