@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -23,13 +22,20 @@ func LoadConfig(path string) (config Config, err error) {
 	viper.AutomaticEnv()
 	viper.SetConfigType("env")
 	viper.SetConfigFile(".env")
-	fmt.Println(viper.Get("PORT"))
 
 	err = viper.ReadInConfig()
 	if err != nil {
 		return
 	}
 
-	err = viper.Unmarshal(&config)
-	return
+	new_config := Config{
+		DbUrl:          viper.GetString("MONGO_URL"),
+		DbName:         viper.GetString("DATABASE"),
+		ServerPort:     viper.GetString("PORT"),
+		TokenSecret:    viper.GetString("TOKEN_SECRET"),
+		TokenExpiresIn: viper.GetDuration("TOKEN_EXPIRED_IN"),
+		TokenMaxAge:    viper.GetInt("TOKEN_MAXAGE"),
+	}
+
+	return new_config, nil
 }
