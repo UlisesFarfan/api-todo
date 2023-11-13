@@ -13,7 +13,7 @@ import (
 // Database connection
 func GetDatabase() *mongo.Database {
 	var database *mongo.Database
-	config, _ := config.LoadConfig(".")
+	config, _ := config.LoadConfig()
 	fmt.Println(config.DbUrl)
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(config.DbUrl))
 	if err != nil {

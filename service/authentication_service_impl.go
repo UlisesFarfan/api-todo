@@ -32,7 +32,7 @@ func (a *AuthenticationServiceImpl) Login(users request.LoginRequest) (string, e
 		return "", errors.New("invalid username or Password")
 	}
 
-	config, _ := config.LoadConfig(".")
+	config, _ := config.LoadConfig()
 
 	verify_error := security.VerifyPassword(new_users.Password, users.Password)
 	if verify_error != nil {
