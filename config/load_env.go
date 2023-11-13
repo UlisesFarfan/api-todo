@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -36,6 +37,8 @@ func LoadConfig(path string) (config Config, err error) {
 		TokenExpiresIn: viper.GetDuration("TOKEN_EXPIRED_IN"),
 		TokenMaxAge:    viper.GetInt("TOKEN_MAXAGE"),
 	}
+
+	fmt.Println(new_config)
 
 	return new_config, nil
 }
