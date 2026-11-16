@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: API de todo-app (Go en Lambda + DynamoDB). El front sigue en Vercel y llama a la URL de API Gateway.
+
+Parameters:
+  AllowedOrigins:
+    Type: String
+    Description: Orígenes del front, separados por coma (https://todoappbyulises.vercel.app). Exactos, sin barra final.
+  GoogleClientId:
+    Type: String
+    Description: Client ID de Google del front (VITE_CLIENT_ID). La API solo acepta tokens emitidos para él.
+
+Resources:
+  # ---------- Base ----------
+  # Una sola tabla (ver internal/base): pk + sk, los datos en JSON y una versión por fila.
+  Tabla:
+    Type: AWS::DynamoDB::Table
+    # los tableros de los usuarios no se van con el stack
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      # las sesiones vencidas se borran solas
+      TimeToLiveSpecification:
+        AttributeName: vence
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # ---------- API ----------
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      # el registro es público: un tope para que nadie la funda ni infle la cuenta
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 50
+        ThrottlingRateLimit: 20
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      # make build lo deja en build/bootstrap (runtime propio, sin SDK de Lambda).
+      CodeUri: build/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures: [arm64]
+      MemorySize: 256
+      Timeout: 15
+      Environment:
+        Variables:
+          TABLA: !Ref Tabla
+          ALLOWED_ORIGINS: !Ref AllowedOrigins
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Tabla
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref Api
+            Path: /api/{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: Lo que va en VITE_API_ENDPOINT del front en Vercel.
+    Value: !Sub "https://${Api}.execute-api.${AWS::Region}.amazonaws.com"
+  TablaNombre:
+    Value: !Ref Tabla
